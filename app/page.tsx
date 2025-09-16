@@ -1,103 +1,223 @@
+"use client";
+
+import React, { useMemo, useState, useEffect } from "react";
 import Image from "next/image";
+import { BRAND_DARK, BRAND_PRIMARY } from "@/lib/constants";
+import BrandPill from "@/components/self-checkin/BrandPill";
+import SearchBox from "@/components/self-checkin/SearchBox";
+import ResultsList from "@/components/self-checkin/ResultsList";
+import DetailsCard from "@/components/self-checkin/DetailsCard";
+import { MOCK_CUSTOMERS } from "@/data/mockCustomers";
+import { Customer } from "@/types";
+import { STRINGS, Lang } from "@/lib/i18n";
+// import toast from "react-hot-toast";
+import { toast, Toaster } from "sonner";
 
-export default function Home() {
+export default function Page() {
+  const [lang, setLang] = useState<Lang>("en"); // language state
+  const t = STRINGS[lang];
+
+  const [query, setQuery] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [selected, setSelected] = useState<Customer | null>(null);
+
+  // detect if query looks like phone (digits) → search phone; else name
+  const results = useMemo(() => {
+    const q = query.trim().toLowerCase();
+    if (!q) return [] as Customer[];
+
+    const looksLikePhone = /\d/.test(q);
+    return MOCK_CUSTOMERS.filter((c) => {
+      if (looksLikePhone) {
+        const phoneDigits = (c.phone || "").replace(/\D/g, "");
+        const qDigits = q.replace(/\D/g, "");
+        return phoneDigits.includes(qDigits);
+      }
+      return c.name.toLowerCase().includes(q);
+    });
+  }, [query]);
+
+  useEffect(() => {
+    if (!query) return;
+    setLoading(true);
+    const t = setTimeout(() => setLoading(false), 250);
+    return () => clearTimeout(t);
+  }, [query]);
+
+  // fake check-in: simulate success/fail then show toast
+  async function handleCheckIn(c: Customer) {
+    await new Promise((r) => setTimeout(r, 400));
+    const ok = Math.random() > 0.15;
+
+    if (ok) {
+      toast.success(t.success, {
+        style: { background: "#A283AF", color: "#fff", fontWeight: 600 }, // brand purple
+      });
+      setSelected({
+        ...c,
+        upcoming: (c.upcoming ?? []).map((a) => ({
+          ...a,
+          status: "checked_in",
+        })),
+      });
+    } else {
+      toast.error(t.fail, {
+        style: { background: "#646665", color: "#fff", fontWeight: 600 }, // brand dark grey
+      });
+    }
+  }
+
+  // RTL for Arabic
+  const isRTL = lang === "ar";
+
   return (
-    <div className="font-sans grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20">
-      <main className="flex flex-col gap-[32px] row-start-2 items-center sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={180}
-          height={38}
-          priority
-        />
-        <ol className="font-mono list-inside list-decimal text-sm/6 text-center sm:text-left">
-          <li className="mb-2 tracking-[-.01em]">
-            Get started by editing{" "}
-            <code className="bg-black/[.05] dark:bg-white/[.06] font-mono font-semibold px-1 py-0.5 rounded">
-              app/page.tsx
-            </code>
-            .
-          </li>
-          <li className="tracking-[-.01em]">
-            Save and see your changes instantly.
-          </li>
-        </ol>
-
-        <div className="flex gap-4 items-center flex-col sm:flex-row">
-          <a
-            className="rounded-full border border-solid border-transparent transition-colors flex items-center justify-center bg-foreground text-background gap-2 hover:bg-[#383838] dark:hover:bg-[#ccc] font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 sm:w-auto"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
+    <div
+      className="min-h-screen w-full p-4"
+      style={{
+        background: `linear-gradient(135deg, ${BRAND_PRIMARY}10, #ffffff)`,
+        direction: isRTL ? ("rtl" as const) : ("ltr" as const),
+      }}
+    >
+      <div className="mx-auto w-full max-w-5xl">
+        {/* Top bar: logo left, language toggle right */}
+        <div className="flex items-center justify-between mb-4">
+          <div className="flex-1 flex justify-center">
             <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={20}
-              height={20}
+              src="/enaya-logo.png"
+              alt="Enaya Care"
+              width={140}
+              height={80}
+              priority
             />
-            Deploy now
-          </a>
-          <a
-            className="rounded-full border border-solid border-black/[.08] dark:border-white/[.145] transition-colors flex items-center justify-center hover:bg-[#f2f2f2] dark:hover:bg-[#1a1a1a] hover:border-transparent font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 w-full sm:w-auto md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Read our docs
-          </a>
+          </div>
+          <div className="right-4 flex gap-2">
+            <button
+              className="px-3 py-1 rounded-xl border text-sm"
+              style={{
+                borderColor: `${BRAND_DARK}55`,
+                color: BRAND_DARK,
+                opacity: lang === "en" ? 1 : 0.6,
+              }}
+              onClick={() => setLang("en")}
+            >
+              EN
+            </button>
+            <button
+              className="px-3 py-1 rounded-xl border text-sm"
+              style={{
+                borderColor: `${BRAND_DARK}55`,
+                color: BRAND_DARK,
+                opacity: lang === "ar" ? 1 : 0.6,
+              }}
+              onClick={() => setLang("ar")}
+            >
+              العربية
+            </button>
+          </div>
         </div>
-      </main>
-      <footer className="row-start-3 flex gap-[24px] flex-wrap items-center justify-center">
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
+
+        {/* Subtitle row with pill */}
+        <div
+          className={`flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4 mb-6`}
         >
-          <Image
-            aria-hidden
-            src="/file.svg"
-            alt="File icon"
-            width={16}
-            height={16}
-          />
-          Learn
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
+          <p
+            className="text-sm sm:text-base"
+            style={{ color: BRAND_DARK, opacity: 0.8 }}
+          >
+            {t.welcome}
+          </p>
+          <BrandPill label={t.walkins} />
+        </div>
+
+        {/* Search + Results + Details */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          <div className="lg:col-span-1">
+            <div
+              className="rounded-3xl p-4 sm:p-5 shadow-md border"
+              style={{
+                borderColor: `${BRAND_DARK}20`,
+                backgroundColor: "#fff",
+              }}
+            >
+              <SearchBox
+                value={query}
+                label={t.enterName}
+                placeholder={
+                  lang === "ar"
+                    ? "مثال: عائشة المنصور أو 05xxxxxxxx"
+                    : "e.g., Aisha Al Mansour or 05xxxxxxxx"
+                }
+                onChange={(v) => {
+                  setQuery(v);
+                  setSelected(null);
+                }}
+              />
+              <div className="mt-4">
+                <ResultsList
+                  query={query}
+                  loading={loading}
+                  results={results}
+                  onSelect={setSelected}
+                  onWalkIn={() => toast.info("Walk-in flow goes here")}
+                  onTryPhone={() => toast.info("Switch to phone lookup")}
+                  strings={{
+                    noMatch: t.noMatch,
+                    continueWalkIn: t.continueWalkIn,
+                    tryPhone: t.tryPhone,
+                    member: t.member,
+                  }}
+                />
+
+                <p
+                  className="mt-3 text-[11px] leading-5"
+                  style={{ color: BRAND_DARK, opacity: 0.7 }}
+                >
+                  {t.tip}
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <div className="lg:col-span-2">
+            <DetailsCard
+              selected={selected}
+              onCheckIn={handleCheckIn}
+              strings={{
+                findBooking: t.findBooking,
+                selectThenCheckIn: t.selectThenCheckIn,
+                phone: t.phone,
+                member: t.member,
+                today: t.today,
+                services: t.services,
+                with: t.with,
+                checkIn: t.checkIn,
+                needHelp: t.needHelp,
+                confirmText: t.confirmText,
+                needHelpMessage: t.needHelpMessage,
+              }}
+            />
+          </div>
+        </div>
+
+        {/* Developer notes */}
+        <div
+          className="mt-6 text-xs"
+          style={{ color: BRAND_DARK, opacity: 0.8 }}
         >
-          <Image
-            aria-hidden
-            src="/window.svg"
-            alt="Window icon"
-            width={16}
-            height={16}
-          />
-          Examples
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/globe.svg"
-            alt="Globe icon"
-            width={16}
-            height={16}
-          />
-          Go to nextjs.org →
-        </a>
-      </footer>
+          <details>
+            <summary className="cursor-pointer">{t.devNotes}</summary>
+            <ul className="list-disc pl-5 mt-2 space-y-1">
+              <li>{t.dev1}</li>
+              <li>{t.dev2}</li>
+              <li>
+                On Check-In, POST to <code>/api/checkin</code> with{" "}
+                {"{ customerId, appointmentId }"}.
+              </li>
+              <li>{t.dev4}</li>
+            </ul>
+          </details>
+        </div>
+      </div>
     </div>
   );
 }
