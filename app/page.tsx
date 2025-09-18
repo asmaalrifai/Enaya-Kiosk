@@ -1,3 +1,4 @@
+// app/page.tsx
 "use client";
 
 import React, { useEffect, useState } from "react";
@@ -11,45 +12,49 @@ import { Customer } from "@/types";
 import { STRINGS, Lang } from "@/lib/i18n";
 import { toast } from "sonner";
 
+const PHONE_REGEX = /^05\d{8}$/; // full KSA mobile like 05XXXXXXXX
+
 export default function Page() {
   const [lang, setLang] = useState<Lang>("en");
   const t = STRINGS[lang];
 
   const [query, setQuery] = useState("");
   const [loading, setLoading] = useState(false);
-  const [results, setResults] = useState<Customer[]>([]); // ✅ add results state
+  const [results, setResults] = useState<Customer[]>([]);
   const [selected, setSelected] = useState<Customer | null>(null);
 
-  // Fetch results from your API (debounced)
+  const [processing, setProcessing] = useState(false);
+  // Fetch results only when FULL phone number entered
   useEffect(() => {
     let cancel = false;
 
     const run = async () => {
       const q = query.trim();
-      if (!q) {
-        setResults([]);
+      // Guard: only proceed if full phone matches the pattern
+      if (!PHONE_REGEX.test(q)) {
+        if (!cancel) setResults([]);
         return;
       }
+
       setLoading(true);
       try {
         const res = await fetch(`/api/guests?query=${encodeURIComponent(q)}`);
         const data = await res.json();
         if (!cancel) setResults(data.guests || []);
-      } catch (e) {
+      } catch {
         if (!cancel) toast.error("Search failed");
       } finally {
         if (!cancel) setLoading(false);
       }
     };
 
-    const timer = setTimeout(run, 250);
+    const timer = setTimeout(run, 200);
     return () => {
       cancel = true;
       clearTimeout(timer);
     };
   }, [query]);
 
-  // When a guest is selected, load their (today) appointments
   async function onSelectGuest(c: Customer) {
     setSelected(c);
     try {
@@ -63,19 +68,47 @@ export default function Page() {
     }
   }
 
-  // Check-in via API + Sonner toasts
   async function handleCheckIn(c: Customer) {
-    const apptId = c.upcoming?.[0]?.id;
-    if (!apptId) return toast.error(t.fail);
+    if (processing) return;
+    setProcessing(true);
 
-    const res = await fetch("/api/checkin", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ appointmentId: apptId }),
-    });
+    const appt = c.upcoming?.[0];
+    if (!appt?.id) {
+      toast.error("No appointment found");
+      setProcessing(false);
+      return;
+    }
 
-    if (res.ok) {
-      toast.success(t.success);
+    // 1) Ask to pay (mock)
+    const payToastId = toast.loading("Please tap your card on the reader…");
+    await new Promise((r) => setTimeout(r, 3000));
+    toast.success("Payment successful", { id: payToastId, duration: 1200 });
+
+    // 2) Check-in with correct success/error handling
+    try {
+      await toast.promise(
+        (async () => {
+          const r = await fetch("/api/checkin", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ appointmentId: appt.id }),
+          });
+          if (!r.ok) {
+            // Make toast.promise use its error message
+            const msg = await r.text().catch(() => "");
+            throw new Error(msg || `Check-in failed (${r.status})`);
+          }
+          return r;
+        })(),
+        {
+          loading: "Checking you in…",
+          success: "Check-in successful. Welcome!",
+          error: (e) =>
+            e?.message || "Check-in failed. Please ask our staff for help.",
+        }
+      );
+
+      // 3) Only runs on success
       setSelected({
         ...c,
         upcoming: (c.upcoming ?? []).map((a) => ({
@@ -83,8 +116,8 @@ export default function Page() {
           status: "checked_in",
         })),
       });
-    } else {
-      toast.error(t.fail);
+    } finally {
+      setProcessing(false);
     }
   }
 
@@ -92,15 +125,14 @@ export default function Page() {
 
   return (
     <div
-    className="min-h-screen w-full p-4 bg-white"  // ← add bg-white
-    style={{
-      // removed gradient:
-      backgroundColor: "#fff",
-      direction: isRTL ? ("rtl" as const) : ("ltr" as const),
-    }}
-  >
+      className="min-h-screen w-full p-4 bg-white"
+      style={{
+        backgroundColor: "#fff",
+        direction: isRTL ? ("rtl" as const) : ("ltr" as const),
+      }}
+    >
       <div className="mx-auto w-full max-w-5xl">
-        {/* Header: centered logo + language buttons */}
+        {/* Header */}
         <div className="flex items-center justify-between mb-4">
           <div className="flex-1 flex justify-center">
             <Image
@@ -139,7 +171,10 @@ export default function Page() {
 
         {/* Subheader */}
         <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4 mb-6">
-          <p className="text-sm sm:text-base" style={{ color: BRAND_DARK, opacity: 0.8 }}>
+          <p
+            className="text-sm sm:text-base"
+            style={{ color: BRAND_DARK, opacity: 0.8 }}
+          >
             {t.welcome}
           </p>
           <BrandPill label={t.walkins} />
@@ -157,14 +192,23 @@ export default function Page() {
             >
               <SearchBox
                 value={query}
-                label={t.enterName}
+                // Use a phone-specific label; if you have t.enterPhone use it, otherwise t.phone
+                label={t.phone}
                 placeholder={
                   lang === "ar"
-                    ? "مثال: عائشة المنصور أو 05xxxxxxxx"
-                    : "e.g., Aisha Al Mansour or 05xxxxxxxx"
+                    ? "05xxxxxxxx"
+                    : "05xxxxxxxx"
                 }
                 onChange={(v) => {
-                  setQuery(v);
+                  // Optionally strip non-digits and enforce max length 10
+                  const digits = v.replace(/\D/g, "").slice(0, 10);
+                  // If they started without '05', optionally auto-prepend '05'
+                  const normalized = digits.startsWith("05")
+                    ? digits
+                    : digits
+                    ? `05${digits}`.slice(0, 10)
+                    : "";
+                  setQuery(normalized);
                   setSelected(null);
                 }}
               />
@@ -215,7 +259,10 @@ export default function Page() {
         </div>
 
         {/* Dev notes */}
-        <div className="mt-6 text-xs" style={{ color: BRAND_DARK, opacity: 0.8 }}>
+        <div
+          className="mt-6 text-xs"
+          style={{ color: BRAND_DARK, opacity: 0.8 }}
+        >
           <details>
             <summary className="cursor-pointer">{t.devNotes}</summary>
             <ul className="list-disc pl-5 mt-2 space-y-1">

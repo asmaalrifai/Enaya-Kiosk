@@ -3,11 +3,10 @@ export type Lang = "en" | "ar";
 export const STRINGS: Record<Lang, Record<string, string>> = {
   en: {
     title: "Enaya Care Kiosk",
-    welcome:
-      "Welcome to Enaya — please enter your name or phone to find your booking.",
-    enterName: "Enter your name or phone number",
+    welcome: "Welcome to Enaya — please enter your phone to find your booking.",
+    enterName: "Enter your phone number",
     walkins: "Walk-ins Welcome",
-    tip: "Tip: Enter your first & last name as on your booking.",
+    tip: "Tip: Enter your  phone number as on your booking.",
     findBooking: "Find your booking",
     selectThenCheckIn: "Select your name to review details, then tap Check-In.",
     noMatch: "No matching result.",
@@ -37,11 +36,10 @@ export const STRINGS: Record<Lang, Record<string, string>> = {
   },
   ar: {
     title: "صالون عنـاية",
-    welcome:
-      "مرحباً بك في صالون عنـاية — أدخل اسمك أو رقم الجوال للعثور على حجزك.",
-    enterName: "أدخل الاسم أو رقم الجوال",
+    welcome: "مرحباً بك في صالون عنـاية — أدخل رقم الجوال للعثور على حجزك.",
+    enterName: "أدخل رقم الجوال",
     walkins: "نستقبل بدون حجز",
-    tip: "معلومة: اكتب الاسم الأول والاسم الأخير كما في الحجز.",
+    tip: "معلومة: اكتب رقم الجوال كما في الحجز.",
     findBooking: "ابحث عن الحجز",
     selectThenCheckIn: "اختر اسمك ثم اضغط على تسجيل الوصول.",
     noMatch: "لا توجد نتائج مطابقة.",
@@ -66,6 +64,6 @@ export const STRINGS: Record<Lang, Record<string, string>> = {
     needHelpMessage: "يرجى الاتصال بالاستقبال للحصول على المساعدة.",
     alreadyCheckedIn: "تم تسجيل الوصول مسبقاً",
     total: "الإجمالي",
-    enterPhone: "أدخل رقم الجوال",  
+    enterPhone: "أدخل رقم الجوال",
   },
 };

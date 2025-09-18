@@ -27,9 +27,15 @@ type Props = {
   selected: Customer | null;
   onCheckIn: (c: Customer) => void;
   strings: Strings;
+  processing?: boolean; // ← add this
 };
 
-export default function DetailsCard({ selected, onCheckIn, strings }: Props) {
+export default function DetailsCard({
+  selected,
+  onCheckIn,
+  strings,
+  processing = false,
+}: Props) {
   // De-dupe upcoming items & build stable identity
   const appointments = useMemo(() => {
     const src = selected?.upcoming ?? [];
@@ -62,7 +68,10 @@ export default function DetailsCard({ selected, onCheckIn, strings }: Props) {
             <h2 className="text-xl font-semibold" style={{ color: BRAND_DARK }}>
               {strings.findBooking}
             </h2>
-            <p className="text-sm mt-1" style={{ color: BRAND_DARK, opacity: 0.8 }}>
+            <p
+              className="text-sm mt-1"
+              style={{ color: BRAND_DARK, opacity: 0.8 }}
+            >
               {strings.selectThenCheckIn}
             </p>
           </div>
@@ -91,7 +100,9 @@ export default function DetailsCard({ selected, onCheckIn, strings }: Props) {
                   <span className="inline-flex items-center gap-1 opacity-90">
                     <Phone size={16} /> {maskPhone(selected.phone)}
                   </span>
-                  {selected.email && <span className="opacity-90">{selected.email}</span>}
+                  {selected.email && (
+                    <span className="opacity-90">{selected.email}</span>
+                  )}
                   {selected.membership && (
                     <span
                       className="inline-flex items-center gap-2 rounded-full px-3 py-1 text-xs font-semibold"
@@ -100,7 +111,8 @@ export default function DetailsCard({ selected, onCheckIn, strings }: Props) {
                         color: BRAND_PRIMARY,
                       }}
                     >
-                      <CreditCard size={14} /> {selected.membership} {strings.member}
+                      <CreditCard size={14} /> {selected.membership}{" "}
+                      {strings.member}
                     </span>
                   )}
                 </div>
@@ -109,7 +121,8 @@ export default function DetailsCard({ selected, onCheckIn, strings }: Props) {
 
             <div className="mt-5 grid grid-cols-1 md:grid-cols-3 gap-4">
               {appointments.map((a, i) => {
-                const key = (a as any).uid ?? `${a.id}|${a.time}|${a.staff ?? ""}|${i}`;
+                const key =
+                  (a as any).uid ?? `${a.id}|${a.time}|${a.staff ?? ""}|${i}`;
                 return (
                   <div
                     key={key}
@@ -165,9 +178,10 @@ export default function DetailsCard({ selected, onCheckIn, strings }: Props) {
 
             <div className="mt-6 flex flex-col sm:flex-row gap-3">
               <button
-                className="flex-1 rounded-2xl px-5 py-3 font-semibold shadow-sm focus:ring-4 transition"
+                disabled={processing}
+                className="flex-1 rounded-2xl px-5 py-3 font-semibold shadow-sm focus:ring-4 transition disabled:opacity-60 disabled:cursor-not-allowed"
                 style={{ backgroundColor: BRAND_PRIMARY, color: "#fff" }}
-                onClick={() => onCheckIn(selected)}
+                onClick={() => onCheckIn(selected!)}
               >
                 <span className="inline-flex items-center gap-2">
                   <Check size={18} /> {strings.checkIn}
@@ -187,7 +201,11 @@ export default function DetailsCard({ selected, onCheckIn, strings }: Props) {
 
       <div
         className="pt-6 mt-6 border-t text-[11px]"
-        style={{ borderColor: `${BRAND_DARK}15`, color: BRAND_DARK, opacity: 0.8 }}
+        style={{
+          borderColor: `${BRAND_DARK}15`,
+          color: BRAND_DARK,
+          opacity: 0.8,
+        }}
       >
         {strings.confirmText}
       </div>

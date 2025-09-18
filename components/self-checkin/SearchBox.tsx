@@ -15,7 +15,7 @@ type Props = {
 export default function SearchBox({
   value,
   onChange,
-  label = "Enter phone number",
+  label = "",
   placeholder = "05xxxxxxxx",
   numericOnly = false,
 }: Props) {
