@@ -3,7 +3,7 @@
 
 import React, { useEffect, useState } from "react";
 import Image from "next/image";
-import { BRAND_DARK, BRAND_PRIMARY } from "@/lib/constants";
+import { BRAND_DARK } from "@/lib/constants";
 import BrandPill from "@/components/self-checkin/BrandPill";
 import SearchBox from "@/components/self-checkin/SearchBox";
 import ResultsList from "@/components/self-checkin/ResultsList";
@@ -22,15 +22,14 @@ export default function Page() {
   const [loading, setLoading] = useState(false);
   const [results, setResults] = useState<Customer[]>([]);
   const [selected, setSelected] = useState<Customer | null>(null);
-
   const [processing, setProcessing] = useState(false);
+
   // Fetch results only when FULL phone number entered
   useEffect(() => {
     let cancel = false;
 
     const run = async () => {
       const q = query.trim();
-      // Guard: only proceed if full phone matches the pattern
       if (!PHONE_REGEX.test(q)) {
         if (!cancel) setResults([]);
         return;
@@ -42,7 +41,7 @@ export default function Page() {
         const data = await res.json();
         if (!cancel) setResults(data.guests || []);
       } catch {
-        if (!cancel) toast.error("Search failed");
+        if (!cancel) toast.error(t.searchFailed);
       } finally {
         if (!cancel) setLoading(false);
       }
@@ -53,7 +52,7 @@ export default function Page() {
       cancel = true;
       clearTimeout(timer);
     };
-  }, [query]);
+  }, [query, t.searchFailed]);
 
   async function onSelectGuest(c: Customer) {
     setSelected(c);
@@ -68,23 +67,24 @@ export default function Page() {
     }
   }
 
+  // Pay → Check-in using Sonner toasts (all localized)
   async function handleCheckIn(c: Customer) {
     if (processing) return;
+    const appt = c.upcoming?.[0];
+    if (!appt?.id) return toast.error(t.noAppointmentFound);
+
     setProcessing(true);
 
-    const appt = c.upcoming?.[0];
-    if (!appt?.id) {
-      toast.error("No appointment found");
-      setProcessing(false);
-      return;
-    }
+    // 1) ask to tap card
+    const payToastId = toast.loading(t.tapCardPrompt);
 
-    // 1) Ask to pay (mock)
-    const payToastId = toast.loading("Please tap your card on the reader…");
+    // 2) simulate 3s payment
     await new Promise((r) => setTimeout(r, 3000));
-    toast.success("Payment successful", { id: payToastId, duration: 1200 });
 
-    // 2) Check-in with correct success/error handling
+    // 3) payment success
+    toast.success(t.paymentSuccessful, { id: payToastId, duration: 1200 });
+
+    // 4) check-in (proper success/error)
     try {
       await toast.promise(
         (async () => {
@@ -94,21 +94,19 @@ export default function Page() {
             body: JSON.stringify({ appointmentId: appt.id }),
           });
           if (!r.ok) {
-            // Make toast.promise use its error message
             const msg = await r.text().catch(() => "");
-            throw new Error(msg || `Check-in failed (${r.status})`);
+            throw new Error(msg || `${t.checkInFailed}`);
           }
           return r;
         })(),
         {
-          loading: "Checking you in…",
-          success: "Check-in successful. Welcome!",
-          error: (e) =>
-            e?.message || "Check-in failed. Please ask our staff for help.",
+          loading: t.checkingIn,
+          success: t.checkInSuccessfulWelcome,
+          error: (e) => e?.message || t.checkInFailed,
         }
       );
 
-      // 3) Only runs on success
+      // 5) update UI on success
       setSelected({
         ...c,
         upcoming: (c.upcoming ?? []).map((a) => ({
@@ -192,17 +190,10 @@ export default function Page() {
             >
               <SearchBox
                 value={query}
-                // Use a phone-specific label; if you have t.enterPhone use it, otherwise t.phone
                 label={t.phone}
-                placeholder={
-                  lang === "ar"
-                    ? "05xxxxxxxx"
-                    : "05xxxxxxxx"
-                }
+                placeholder={lang === "ar" ? "05xxxxxxxx" : "05xxxxxxxx"}
                 onChange={(v) => {
-                  // Optionally strip non-digits and enforce max length 10
                   const digits = v.replace(/\D/g, "").slice(0, 10);
-                  // If they started without '05', optionally auto-prepend '05'
                   const normalized = digits.startsWith("05")
                     ? digits
                     : digits
@@ -241,6 +232,7 @@ export default function Page() {
             <DetailsCard
               selected={selected}
               onCheckIn={handleCheckIn}
+              processing={processing}
               strings={{
                 findBooking: t.findBooking,
                 selectThenCheckIn: t.selectThenCheckIn,
@@ -253,6 +245,7 @@ export default function Page() {
                 needHelp: t.needHelp,
                 confirmText: t.confirmText,
                 needHelpMessage: t.needHelpMessage,
+                alreadyCheckedIn: t.alreadyCheckedIn,
               }}
             />
           </div>

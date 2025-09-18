@@ -21,13 +21,14 @@ type Strings = {
   needHelp: string;
   confirmText: string;
   needHelpMessage: string;
+  alreadyCheckedIn: string; // NEW
 };
 
 type Props = {
   selected: Customer | null;
   onCheckIn: (c: Customer) => void;
   strings: Strings;
-  processing?: boolean; // ← add this
+  processing?: boolean;
 };
 
 export default function DetailsCard({
@@ -42,7 +43,6 @@ export default function DetailsCard({
     const seen = new Set<string>();
     const out: typeof src = [];
     for (const a of src) {
-      // Prefer a true unique field if you have one (e.g., a.uid)
       const k = (a as any).uid ?? `${a.id}|${a.time}|${a.staff ?? ""}`;
       if (seen.has(k)) continue;
       seen.add(k);
@@ -50,6 +50,14 @@ export default function DetailsCard({
     }
     return out;
   }, [selected]);
+
+  // True if any of today's appointments are already checked in
+  const isAlreadyCheckedIn = (selected?.upcoming ?? []).some(
+    (a) =>
+      (a.status ?? "")
+        .toLowerCase()
+        .replace(/_/g, "") === "checkedin"
+  );
 
   return (
     <div
@@ -157,7 +165,7 @@ export default function DetailsCard({
 
                       {a.staff && (
                         <div className="mt-3 text-sm flex items-center gap-2 opacity-90">
-                          <MapPin size={16} /> {strings.with} {a.staff}
+                          < MapPin size={16} /> {strings.with} {a.staff}
                         </div>
                       )}
                     </div>
@@ -178,13 +186,16 @@ export default function DetailsCard({
 
             <div className="mt-6 flex flex-col sm:flex-row gap-3">
               <button
-                disabled={processing}
+                disabled={processing || isAlreadyCheckedIn}
                 className="flex-1 rounded-2xl px-5 py-3 font-semibold shadow-sm focus:ring-4 transition disabled:opacity-60 disabled:cursor-not-allowed"
                 style={{ backgroundColor: BRAND_PRIMARY, color: "#fff" }}
                 onClick={() => onCheckIn(selected!)}
               >
                 <span className="inline-flex items-center gap-2">
-                  <Check size={18} /> {strings.checkIn}
+                  <Check size={18} />
+                  {isAlreadyCheckedIn
+                    ? strings.alreadyCheckedIn
+                    : strings.checkIn}
                 </span>
               </button>
               <button
