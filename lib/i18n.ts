@@ -3,7 +3,8 @@ export type Lang = "en" | "ar";
 export const STRINGS: Record<Lang, Record<string, string>> = {
   en: {
     title: "Enaya Care Kiosk",
-    welcome: "Welcome to Enaya — please enter your name or phone to find your booking.",
+    welcome:
+      "Welcome to Enaya — please enter your name or phone to find your booking.",
     enterName: "Enter your name or phone number",
     walkins: "Walk-ins Welcome",
     tip: "Tip: Enter your first & last name as on your booking.",
@@ -19,7 +20,8 @@ export const STRINGS: Record<Lang, Record<string, string>> = {
     today: "Today",
     checkIn: "Check-In",
     needHelp: "Need Help",
-    confirmText: "By checking in, you confirm your appointment details are correct.",
+    confirmText:
+      "By checking in, you confirm your appointment details are correct.",
     devNotes: "Developer Integration Notes",
     dev1: "Replace mock data with /api/customers?query=...",
     dev2: "Debounce search and return top N matches.",
@@ -29,10 +31,14 @@ export const STRINGS: Record<Lang, Record<string, string>> = {
     fail: "Check-in failed. Please try again or ask at the reception.",
     name: "Name",
     needHelpMessage: "Please call a receptionist for assistance.",
+    alreadyCheckedIn: "Already checked in",
+    total: "Total",
+    enterPhone: "Enter phone number",
   },
   ar: {
     title: "صالون عنـاية",
-    welcome: "مرحباً بك في صالون عنـاية — أدخل اسمك أو رقم الجوال للعثور على حجزك.",
+    welcome:
+      "مرحباً بك في صالون عنـاية — أدخل اسمك أو رقم الجوال للعثور على حجزك.",
     enterName: "أدخل الاسم أو رقم الجوال",
     walkins: "نستقبل بدون حجز",
     tip: "معلومة: اكتب الاسم الأول والاسم الأخير كما في الحجز.",
@@ -58,5 +64,8 @@ export const STRINGS: Record<Lang, Record<string, string>> = {
     fail: "فشل تسجيل الوصول. حاول مرة أخرى أو تواصل مع الاستقبال.",
     name: "الاسم",
     needHelpMessage: "يرجى الاتصال بالاستقبال للحصول على المساعدة.",
+    alreadyCheckedIn: "تم تسجيل الوصول مسبقاً",
+    total: "الإجمالي",
+    enterPhone: "أدخل رقم الجوال",  
   },
 };
